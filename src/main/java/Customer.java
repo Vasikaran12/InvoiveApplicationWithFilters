@@ -12,10 +12,11 @@ import javax.servlet.http.HttpServletResponse;
 @WebServlet("/customers")
 public class Customer extends HttpServlet {
     static PrintWriter out;
+    Util util = new Util();
 
     public void service(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        Util.initDB();
-        Util.initGson(req.getReader());
+        util.initDB();
+        util.initGson(req.getReader());
         out = res.getWriter();
 
         String method = req.getMethod();
@@ -23,19 +24,19 @@ public class Customer extends HttpServlet {
         try {
             switch (method) {
                 case "POST":
-                    int rows = Util.stmt.executeUpdate("insert into " +
+                    int rows = util.stmt.executeUpdate("insert into " +
                             "customer(name, phone, email, billing_address, shipping_address)" +
                             " values(\"" +
-                            Util.get("name").getAsString() + "\"," +
-                            Util.get("phone").getAsLong() + ",\"" +
-                            Util.get("email").getAsString() + "\",\"" +
-                            Util.get("billing_address").getAsString() + "\",\"" +
-                            Util.get("shipping_address").getAsString() + "\"" +
+                            util.get("name").getAsString() + "\"," +
+                            util.get("phone").getAsLong() + ",\"" +
+                            util.get("email").getAsString() + "\",\"" +
+                            util.get("billing_address").getAsString() + "\",\"" +
+                            util.get("shipping_address").getAsString() + "\"" +
                             ")");
                     if (rows != -1) {
                         out.println("Query Executed");
 
-                        Util.con.commit();
+                        util.con.commit();
 
                     }
                     break;

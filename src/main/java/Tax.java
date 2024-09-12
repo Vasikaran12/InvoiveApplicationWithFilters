@@ -11,19 +11,20 @@ public class Tax extends HttpServlet {
     static PrintWriter out;
 
     public void service(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        Util.initDB();
-        Util.initGson(req.getReader());
+        Util util = new Util();
+        util.initDB();
+        util.initGson(req.getReader());
         out = res.getWriter();
         String method = req.getMethod();
 
         try {
             switch (method) {
                 case "POST":
-                    int rows = Util.stmt.executeUpdate("insert into" +
+                    int rows = util.stmt.executeUpdate("insert into" +
                             " tax(type, tax)" +
                             " values(" +
-                            Util.get("type").getAsInt() + "," +
-                            Util.get("tax").getAsInt() +
+                            util.get("type").getAsInt() + "," +
+                            util.get("tax").getAsInt() +
                             ")");
                     if (rows != -1) {
                         out.println("Query Executed");

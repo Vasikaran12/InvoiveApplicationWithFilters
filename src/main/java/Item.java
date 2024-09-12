@@ -11,8 +11,9 @@ public class Item extends HttpServlet {
     static PrintWriter out;
 
     public void service(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        Util.initDB();
-        Util.initGson(req.getReader());
+        Util util = new Util();
+        util.initDB();
+        util.initGson(req.getReader());
         out = res.getWriter();
 
         String method = req.getMethod();
@@ -20,20 +21,20 @@ public class Item extends HttpServlet {
         try {
             switch (method) {
                 case "POST":
-                    int rows = Util.stmt.executeUpdate("insert into" +
+                    int rows = util.stmt.executeUpdate("insert into" +
                             " item(name,selling_price,retail_price,stock,tax_percent)" +
                             " values(\"" +
-                            Util.get("name").getAsString() + "\"," +
-                            Util.get("selling_price").getAsFloat() + "," +
-                            Util.get("retail_price").getAsFloat() + "," +
-                            Util.get("stock").getAsInt() + "," +
-                            Util.get("tax_percent").getAsLong() +
+                            util.get("name").getAsString() + "\"," +
+                            util.get("selling_price").getAsFloat() + "," +
+                            util.get("retail_price").getAsFloat() + "," +
+                            util.get("stock").getAsInt() + "," +
+                            util.get("tax_percent").getAsLong() +
                             ")");
 
                     if (rows != -1) {
                         out.println("Query Executed");
 
-                        Util.con.commit();
+                        util.con.commit();
 
                     }
                     break;
