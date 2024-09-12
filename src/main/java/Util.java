@@ -31,3 +31,47 @@ public class Util {
         }
     }
 }
+
+
+class Response{
+    boolean success;
+    String payload;
+    Error error;
+
+    public Response(boolean success, String payload) {
+        this.success = success;
+        this.payload = payload;
+    }
+
+    public Response(boolean success, String payload, Error error) {
+        this.success = success;
+        this.payload = payload;
+        this.error = error;
+    }
+
+    public Response(boolean success, Error error) {
+        this.error = error;
+        this.success = success;
+    }
+}
+
+class Error{
+    int code;
+    String message;
+
+    public Error(int code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+}
+
+class ValidationException extends Exception{
+    public ValidationException(String message) {
+        super(message);
+    }
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
+}

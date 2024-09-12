@@ -79,12 +79,43 @@ class InvoiceModel {
                     SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy");
                     SimpleDateFormat dbFormat = new SimpleDateFormat("yyyy-MM-dd");
 
+
+
                     String date = Util.get("date").getAsString();
                     String due_date = Util.get("due_date").getAsString();
                     int shipping_charge = Util.get("shipping_charge").getAsInt();
                     long customer_id = Util.get("customer_id").getAsLong();
                     int tax_type = Util.get("tax_type").getAsInt();
                     float tax_percent = Util.get("tax_percent").getAsInt();
+
+                    //validation
+                    if(date.isEmpty()){
+                        throw new ValidationException("Date should not be empty");
+                    }
+
+                    if(due_date.isEmpty()){
+                        throw new ValidationException("Due Date should not be empty");
+                    }
+
+                    if (format.parse(date).after(format.parse(due_date))) {
+                        throw new ValidationException("Due date should be after the Invoice date");
+                    }
+
+                    if(shipping_charge < 0){
+                        throw new ValidationException("Invalid shipping charge");
+                    }
+
+                    ResultSet rs = Util.stmt.executeQuery("select count(id) as count from customer where id = " + customer_id);
+
+                    int rowCount =  0;
+                    if(rs.next()) {
+                        rowCount = rs.getInt("count");
+                        System.out.println(rowCount);
+                    }
+
+                    if(rowCount == 0){
+                        throw new ValidationException("Customer not found");
+                   }
 
                     Util.stmt.executeUpdate(
                             "insert into" + " invoice(date, due_date, shipping_charge, customer_id, tax_type, tax_percent, sub_total, total)" +
@@ -98,21 +129,32 @@ class InvoiceModel {
                                     0 + "," +
                                     0 + ")",
                             Statement.RETURN_GENERATED_KEYS);
-                    int rows;
 
                     JsonArray items = Util.get("items").getAsJsonArray();
-                    ResultSet rs;
 
                     rs = Util.stmt.getGeneratedKeys();
                     rs.next();
-                    Long invoice_id = rs.getLong(1);
+                    long invoice_id = rs.getLong(1);
 
                     float sub_total = 0;
 
                     for (JsonElement e : items) {
                         JsonObject ob = e.getAsJsonObject();
 
-                        Long item_id = ob.get("id").getAsLong();
+                        long item_id = ob.get("id").getAsLong();
+
+                        rs = Util.stmt.executeQuery("select count(id) as count from item where id = " + item_id);
+
+                        rowCount =  0;
+                        if(rs.next()) {
+                            rowCount = rs.getInt("count");
+                            System.out.println(rowCount);
+                        }
+
+                        if(rowCount == 0){
+                            throw new ValidationException("Item (item_id: "+ item_id + ") not found");
+                        }
+
                         int quantity = ob.get("quantity").getAsInt();
                         float discount_percent = ob.get("discount_percent").getAsInt();
 
@@ -122,6 +164,11 @@ class InvoiceModel {
                         String name = rs.getString("name");
                         float selling_price = rs.getFloat("selling_price");
                         int stock = rs.getInt("stock") - quantity;
+
+                        if(stock < 0){
+                            throw new ValidationException("Insufficient Stock for item id " + item_id);
+                        }
+
                         float item_tax_percent = rs.getInt("tax_percent");
                         float item_sub_total = selling_price * quantity - (discount_percent / 100) * selling_price;
                         float item_tax_amount = (item_tax_percent / 100) * item_sub_total;
@@ -199,8 +246,12 @@ class InvoiceModel {
 
                     break;
             }
+        } catch (ValidationException e) {
+            res.setStatus(403);
+            out.println(new Gson().toJson(
+                    new Response(false, new Error(403, e.getMessage()))));
         } catch (Exception e) {
-            out.println(e.toString());
+            res.sendError(500, e.getMessage());
             try {
                 Util.con.rollback();
             } catch (SQLException ex) {
