@@ -11,6 +11,7 @@ import java.sql.SQLException;
 
 @WebServlet("/test")
 public class Test extends HttpServlet {
+
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         Util util = new Util();

@@ -3,21 +3,30 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mysql.cj.protocol.Message;
 
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.sql.*;
 
 interface Validator {
-    boolean validate(Object data);
-
-    boolean validate(Object data, String regex);
-
-    String customValidate(Object data);
+    ValidationException validate(Object data);
 }
 
 public class Util {
     Connection con;
     JsonObject data;
     Statement stmt;
+
+    static String dateRegex = "^((2000|2400|2800|(19|2[0-9])(0[48]|[2468][048]|[13579][26]))-02-29)$" +
+            "|^(((19|2[0-9])[0-9]{2})-02-(0[1-9]|1[0-9]|2[0-8]))$" +
+            "|^(((19|2[0-9])[0-9]{2})-(0[13578]|10|12)-(0[1-9]|[12][0-9]|3[01]))$" +
+            "|^(((19|2[0-9])[0-9]{2})-(0[469]|11)-(0[1-9]|[12][0-9]|30))$";
+    static String alphaRegex = "^[A-Za-z]+$";
+    static String numericRegex = "^[0-9]+$";
+    static String alphaNumericRegex = "^[A-Za-z0-9]+$";
+    static String percentRegex = "^([0-9]|[1-9][0-9]|100)$";
+    static String floatRegex = "[-+]?[0-9]*\\.?[0-9]+";
+    static String phoneRegex = "^(\\+\\d{1,2}\\s)?\\(?\\d{3}\\)?[\\s.-]\\d{3}[\\s.-]\\d{4}$";
+    static String emailRegex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
 
     public void initGson(Reader json) {
         this.data = new Gson().fromJson(json, JsonObject.class);
@@ -41,30 +50,44 @@ public class Util {
             con.setAutoCommit(false);
         } catch (Exception e) {
             System.out.println(e.toString());
-
         }
     }
 
-    public void validate(String field, Object data, String regex, Validator validator) throws ValidationException {
-        if (validator.validate(data)) throw new ValidationException(field + "should not be empty", 400);
-        if (validator.validate(data, regex))
-            throw new ValidationException("Invalid format for field '" + field + "'", 400);
-        String err_msg = validator.customValidate(data);
-        if(!err_msg.isEmpty()) throw new ValidationException(err_msg, 400);
+    public void validate(String field, Object data, String regex, boolean nullCheck, boolean regexCheck, Validator validator) throws
+            ValidationException {
+        if (nullCheck && (data == null || data.toString().replace("\"", "").isEmpty())) {
+            throw new ValidationException("'" + field + "' is required", 400);
+        }
+
+        if (data != null) {
+            data = data.toString().replace("\"", "");
+            if (regexCheck && !(data.toString().matches(regex))) {
+                System.out.println(data.toString());
+                throw new ValidationException("Invalid value for field '" + field + "'", 400);
+            }
+            if (validator != null) {
+                ValidationException exp = validator.validate(data);
+                if (exp != null) throw exp;
+            }
+        }
+    }
+
+    public void sendResponse(PrintWriter out, Response response){
+        out.println(new Gson().toJson(response));
     }
 }
 
 class Response {
     boolean success;
-    String payload;
-    Error error;
+    Object payload;
+    Error error = null;
 
-    public Response(boolean success, String payload) {
+    public Response(boolean success, Object payload) {
         this.success = success;
         this.payload = payload;
     }
 
-    public Response(boolean success, String payload, Error error) {
+    public Response(boolean success, Object payload, Error error) {
         this.success = success;
         this.payload = payload;
         this.error = error;
@@ -85,6 +108,8 @@ class Error {
         this.message = message;
     }
 }
+
+
 
 class ValidationException extends Exception {
     int errorCode;
