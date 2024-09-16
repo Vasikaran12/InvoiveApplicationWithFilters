@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -43,7 +44,7 @@ public class Customer extends HttpServlet {
 
         List<CustomerModel> customers = new ArrayList<>();
 
-        while (rs.next()) {
+        while (rs.next()){
             System.out.println(rs.getLong("id"));
             CustomerModel customer = new CustomerModel(rs.getLong("id"), rs.getString("name"),
                     rs.getLong("phone"), rs.getString("email"), rs.getString("billing_address"),
@@ -53,6 +54,12 @@ public class Customer extends HttpServlet {
         }
 
         return new Gson().toJsonTree(customers.size() == 1 ? customers.get(0) : customers);
+    }
+
+    @Override
+
+    public void init() throws ServletException {
+        super.init();
     }
 
     public void service(HttpServletRequest req, HttpServletResponse res) throws IOException {
