@@ -70,7 +70,7 @@ import javax.servlet.http.HttpServletResponse;
     public void service(HttpServletRequest req, HttpServletResponse res) throws IOException {
         Util util = new Util();
         util.initDB();
-        util.initGson(req.getReader());
+        util.data = (JsonObject) req.getAttribute("reqJson");
         out = res.getWriter();
         res.setContentType("application/json");
 
@@ -202,7 +202,7 @@ import javax.servlet.http.HttpServletResponse;
                         id = "";
                     }
 
-                    util.sendResponse(out, new Response(true, getPayments(id, util)));
+                    util.sendResponse(out, new Response(true, getPayments(id, util)), res);
                     break;
                 case "PUT":
 
@@ -212,7 +212,7 @@ import javax.servlet.http.HttpServletResponse;
             }
         } catch (ValidationException e) {
             res.setStatus(e.errorCode);
-            util.sendResponse(out, new Response(false, new Error(e.errorCode, e.getMessage())));
+            util.sendResponse(out, new Response(false, new Error(e.errorCode, e.getMessage())), res);
         } catch (Exception e) {
             res.sendError(500, e.getMessage());
             try {

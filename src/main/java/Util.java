@@ -3,6 +3,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mysql.cj.protocol.Message;
 
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.sql.*;
@@ -25,7 +27,7 @@ public class Util {
     static String alphaNumericRegex = "^[A-Za-z0-9]+$";
     static String percentRegex = "^([0-9]|[1-9][0-9]|100)$";
     static String floatRegex = "[-+]?[0-9]*\\.?[0-9]+";
-    static String phoneRegex = "^(\\+\\d{1,2}\\s)?\\(?\\d{3}\\)?[\\s.-]\\d{3}[\\s.-]\\d{4}$";
+    static String phoneRegex = "^[\\d]{10}$";
     static String emailRegex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
 
     public void initGson(Reader json) {
@@ -72,8 +74,11 @@ public class Util {
         }
     }
 
-    public void sendResponse(PrintWriter out, Response response){
+    public void sendResponse(PrintWriter out, Response response, HttpServletResponse res){
         out.println(new Gson().toJson(response));
+        if(response.error != null){
+            res.setStatus(response.error.code);
+        }
     }
 }
 

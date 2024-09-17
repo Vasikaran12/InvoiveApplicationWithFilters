@@ -1,10 +1,12 @@
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,14 +16,14 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-@WebServlet("/customers")
+@WebServlet("/customers/*")
 public class Customer extends HttpServlet {
     static PrintWriter out;
     Util util = new Util();
 
-    JsonElement getInvoices(String id, Util util) throws SQLException, ValidationException {
+    JsonElement getCustomers(String id, Util util) throws SQLException, ValidationException {
 
-        String query = id.isEmpty() ? "" : "where i.id = " + id;
+        String query = id.isEmpty() ? "" : "where c.id = " + id;
         ResultSet rs;
 
         if (!id.isEmpty()) {
@@ -31,20 +33,20 @@ public class Customer extends HttpServlet {
             int rowCount = 0;
             if (rs.next()) {
                 rowCount = rs.getInt("count");
-                System.out.println(rowCount);
+                System.out.println("test : " + rowCount);
             }
             if (rowCount == 0) {
                 throw new ValidationException("customer not found", 404);
             }
         }
 
-        String sql = "select name, phone, email, billing_address, shipping_address from customer " + query;
+        String sql = "select id, name, phone, email, billing_address, shipping_address from customer c " + query;
 
         rs = util.stmt.executeQuery(sql);
 
         List<CustomerModel> customers = new ArrayList<>();
 
-        while (rs.next()){
+        while (rs.next()) {
             System.out.println(rs.getLong("id"));
             CustomerModel customer = new CustomerModel(rs.getLong("id"), rs.getString("name"),
                     rs.getLong("phone"), rs.getString("email"), rs.getString("billing_address"),
@@ -64,11 +66,11 @@ public class Customer extends HttpServlet {
 
     public void service(HttpServletRequest req, HttpServletResponse res) throws IOException {
         util.initDB();
-        util.initGson(req.getReader());
+        util.data = (JsonObject) req.getAttribute("reqJson");
         out = res.getWriter();
+        res.setContentType("application/json");
 
         String method = req.getMethod();
-
         try {
             switch (method) {
                 case "POST":
@@ -85,7 +87,7 @@ public class Customer extends HttpServlet {
                     util.validate("billing_address", billing_address, Util.alphaRegex, true, true, null);
                     util.validate("shipping_address", billing_address, Util.alphaRegex, true, true, null);
 
-                    int rows = util.stmt.executeUpdate("insert into " +
+                    util.stmt.executeUpdate("insert into " +
                             "customer(name, phone, email, billing_address, shipping_address)" +
                             " values(\"" +
                             util.get("name").getAsString() + "\"," +
@@ -93,14 +95,26 @@ public class Customer extends HttpServlet {
                             util.get("email").getAsString() + "\",\"" +
                             util.get("billing_address").getAsString() + "\",\"" +
                             util.get("shipping_address").getAsString() + "\"" +
-                            ")");
-                    if (rows != -1) {
-                        out.println("Query Executed");
-                        util.con.commit();
-                    }
+                            ")", Statement.RETURN_GENERATED_KEYS);
+
+                    ResultSet rs = util.stmt.getGeneratedKeys();
+                    rs.next();
+                    long customer_id = rs.getLong(1);
+
+                    util.sendResponse(out, new Response(true, getCustomers(customer_id + "", util)), res);
+                    util.con.commit();
+                    res.setStatus(201);
                     break;
                 case "GET":
-                    res.getWriter().print("Get request for taxes");
+                    String id = req.getPathInfo();
+
+                    if (id != null) {
+                        id = id.replace("/", "");
+                    } else {
+                        id = "";
+                    }
+                    util.sendResponse(out, new Response(true, getCustomers(id, util)), res);
+
                     break;
                 case "PUT":
 
@@ -109,6 +123,10 @@ public class Customer extends HttpServlet {
 
                     break;
             }
+        } catch (ValidationException e) {
+            res.setStatus(e.errorCode);
+            out.println(new Gson().toJson(
+                    new Response(false, new Error(e.errorCode, e.getMessage()))));
         } catch (Exception e) {
             out.println(e.toString());
         }

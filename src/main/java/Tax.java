@@ -1,3 +1,5 @@
+import com.google.gson.JsonObject;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -13,7 +15,7 @@ public class Tax extends HttpServlet {
     public void service(HttpServletRequest req, HttpServletResponse res) throws IOException {
         Util util = new Util();
         util.initDB();
-        util.initGson(req.getReader());
+        util.data = (JsonObject) req.getAttribute("reqJson");
         out = res.getWriter();
         String method = req.getMethod();
 

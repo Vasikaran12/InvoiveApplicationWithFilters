@@ -93,7 +93,7 @@ public class Invoice extends HttpServlet {
     public void service(HttpServletRequest req, HttpServletResponse res) throws IOException {
         Util util = new Util();
         util.initDB();
-        util.initGson(req.getReader());
+        util.data = (JsonObject) req.getAttribute("reqJson");
         out = res.getWriter();
         res.setContentType("application/json");
 
@@ -279,7 +279,7 @@ public class Invoice extends HttpServlet {
 
                     util.stmt.executeBatch();
 
-                    util.sendResponse(out, new Response(true, getInvoices(invoice_id + "", util)));
+                    util.sendResponse(out, new Response(true, getInvoices(invoice_id + "", util)), res);
                     util.con.commit();
                     res.setStatus(201);
                     break;
@@ -292,7 +292,7 @@ public class Invoice extends HttpServlet {
                     } else {
                         id = "";
                     }
-                    util.sendResponse(out, new Response(true, getInvoices(id, util)));
+                    util.sendResponse(out, new Response(true, getInvoices(id, util)), res);
 
                     break;
                 case "PUT":
@@ -333,9 +333,9 @@ public class Invoice extends HttpServlet {
                             "'confirmed'" + "," +
                             "CURRENT_TIMESTAMP)");
 
-
+                    util.sendResponse(out, new Response(true, getInvoices(put_id + "", util)), res);
                     util.con.commit();
-                    res.setStatus(204);
+                    res.setStatus(200);
 
                 case "DELETE":
 
